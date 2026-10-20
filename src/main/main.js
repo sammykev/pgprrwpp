@@ -4,6 +4,7 @@ const { app, BrowserWindow, ipcMain, dialog, shell, safeStorage, Menu } = requir
 const fs = require('fs');
 const path = require('path');
 const { runTask, createClient, friendlyError, MODELS } = require('./ai');
+const { runNvidiaTask, NVIDIA_MODELS } = require('./nvidia');
 const { SettingsStore } = require('./settings');
 const { TONES, DRAFT_TYPES, CITATION_STYLES, PARAPHRASE_MODES } = require('./prompts');
 
@@ -38,7 +39,7 @@ function createWindow() {
 
 ipcMain.handle('settings:get', () => ({
   ...settings.publicView(),
-  options: { models: MODELS, tones: TONES, draftTypes: DRAFT_TYPES, citationStyles: CITATION_STYLES, paraphraseModes: Object.keys(PARAPHRASE_MODES) },
+  options: { models: MODELS, nvidiaModels: NVIDIA_MODELS, tones: TONES, draftTypes: DRAFT_TYPES, citationStyles: CITATION_STYLES, paraphraseModes: Object.keys(PARAPHRASE_MODES) },
 }));
 
 ipcMain.handle('settings:set', (_e, patch) => settings.update(patch || {}));
@@ -47,16 +48,17 @@ ipcMain.handle('ai:run', async (event, { id, task, input, opts }) => {
   const controller = new AbortController();
   running.set(id, controller);
   try {
-    const client = createClient(settings.getApiKey());
-    const result = await runTask({
-      client,
+    const common = {
       task,
       input,
       opts,
       settings: settings.data,
       signal: controller.signal,
       onDelta: (text) => event.sender.send('ai:delta', { id, text }),
-    });
+    };
+    const result = settings.data.provider === 'nvidia'
+      ? await runNvidiaTask({ ...common, apiKey: settings.getApiKey('nvidia'), model: settings.data.nvidiaModel })
+      : await runTask({ ...common, client: createClient(settings.getApiKey('anthropic')) });
     return { ok: true, ...result };
   } catch (err) {
     return { ok: false, error: friendlyError(err) };

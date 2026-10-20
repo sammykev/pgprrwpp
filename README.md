@@ -16,7 +16,16 @@ Every panel shows word count, reading time and a Flesch readability score. Your 
 
 ## Getting started
 
-Requirements: [Node.js 20+](https://nodejs.org) and a Claude API key from <https://console.anthropic.com>.
+Requirements: [Node.js 20+](https://nodejs.org) and an API key from one of these providers:
+
+| Provider | Cost | Tools available |
+|---|---|---|
+| **Claude** (Anthropic): key from <https://console.anthropic.com> | Pay as you go (Claude Haiku 5.5 is very cheap) | All seven |
+| **NVIDIA API catalog**: free key from <https://build.nvidia.com> | Free tier for prototyping, rate-limited | Proofread, Paraphrase, Rewrite, Natural voice, Draft composer (without research), offline reference builder |
+
+The NVIDIA models have no web search, so **Originality check**, **Find sources** and **researched drafts** need Claude.
+
+To get an NVIDIA key: sign in at build.nvidia.com, open any model page, click **Get API Key**, and copy the key (it starts with `nvapi-`). In Quillwise, open **Settings**, choose **NVIDIA API catalog**, and paste it. The default model is `mistralai/mistral-large-2-instruct`; you can type any other chat model ID from the catalog.
 
 ```bash
 npm install
@@ -25,7 +34,7 @@ npm test           # unit tests
 npm run dist:win   # build a Windows installer + portable .exe into dist/
 ```
 
-On first launch, open **Settings** and paste your API key. It is encrypted with Windows' DPAPI (via Electron `safeStorage`) and stored in `%APPDATA%\Quillwise\settings.json`. If `ANTHROPIC_API_KEY` is set in the environment, that is used when no key is saved.
+On first launch, open **Settings**, pick a provider and paste your key. Keys are encrypted with Windows' DPAPI (via Electron `safeStorage`) and stored in `%APPDATA%\Quillwise\settings.json`. If `ANTHROPIC_API_KEY` or `NVIDIA_API_KEY` is set in the environment, it is used when no key is saved.
 
 In Settings you can also pick the model (Claude Opus 5.5 by default; Sonnet 5.5 and Haiku 5.5 are faster and cheaper), American or British English, and your default citation style.
 
@@ -37,8 +46,9 @@ Shortcut: **Ctrl+Enter** runs the current tool.
 src/
   main/main.js       Electron window, IPC, file open/save
   main/ai.js         Claude API calls (streaming, web search, pause_turn resume, refusal fallback)
+  main/nvidia.js     NVIDIA API catalog calls (OpenAI-compatible streaming, hides <think> reasoning)
   main/prompts.js    System prompt and settings for each tool
-  main/settings.js   Settings file + encrypted API key
+  main/settings.js   Settings file + encrypted API keys per provider
   preload.js         Narrow bridge exposed to the UI (window.quill)
   renderer/          UI (plain HTML/CSS/JS, strict CSP, no Node access)
   shared/            Pure helpers used by the UI and tests:

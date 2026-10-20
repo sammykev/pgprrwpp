@@ -60,11 +60,30 @@
   <dialog id="settingsDialog">
     <form method="dialog" id="settingsForm">
       <h2>Settings</h2>
-      <label>Claude API key
-        <input type="password" id="apiKey" autocomplete="off" placeholder="sk-ant-…">
-        <small id="keyHint" class="muted"></small>
+      <label>AI provider
+        <select id="provider">
+          <option value="anthropic">Claude (Anthropic): best quality, all tools</option>
+          <option value="nvidia">NVIDIA API catalog: free tier, no web search</option>
+        </select>
       </label>
-      <label>Model <select id="model"></select></label>
+      <div data-provider="anthropic">
+        <label>Claude API key
+          <input type="password" id="apiKey" autocomplete="off" placeholder="sk-ant-…">
+          <small id="keyHint" class="muted"></small>
+        </label>
+        <label>Model <select id="model"></select></label>
+      </div>
+      <div data-provider="nvidia">
+        <label>NVIDIA API key
+          <input type="password" id="nvidiaKey" autocomplete="off" placeholder="nvapi-…">
+          <small id="nvidiaKeyHint" class="muted"></small>
+        </label>
+        <label>Model
+          <input type="text" id="nvidiaModel" list="nvidiaModels" autocomplete="off" spellcheck="false">
+          <datalist id="nvidiaModels"></datalist>
+          <small class="muted">Any chat model ID from build.nvidia.com works.</small>
+        </label>
+      </div>
       <label>English <select id="englishVariant"><option value="US">American</option><option value="UK">British</option></select></label>
       <label>Default citation style <select id="citationStyle"></select></label>
       <div class="dialog-actions">

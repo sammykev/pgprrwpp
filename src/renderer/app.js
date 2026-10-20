@@ -249,6 +249,16 @@ function renderManualCitationForm(box, vals) {
   }
 }
 
+function providerNotice(key, manual) {
+  if (manual) return '';
+  const nvidia = settings.provider === 'nvidia';
+  if (!settings.hasApiKey) return `Add your ${nvidia ? 'NVIDIA' : 'Claude'} API key in Settings to start.`;
+  if (nvidia && (key === 'originality' || key === 'cite')) {
+    return 'This tool needs web search, which only the Claude provider has.' + (key === 'cite' ? ' The "Build a reference" mode works with any provider.' : '');
+  }
+  return '';
+}
+
 function selectTool(key) {
   if (activeRequest) return;
   current = key;
@@ -259,7 +269,7 @@ function selectTool(key) {
   $('runBtn').textContent = manual ? 'Format reference' : t.button;
   $('inputLabel').textContent = t.inputLabel || 'Your text';
   $('input').placeholder = t.placeholder || 'Type or paste your writing here…';
-  showBanner(settings.hasApiKey || manual ? '' : 'Add your Claude API key in Settings to start.');
+  showBanner(providerNotice(key, manual));
   renderNav();
   renderOptions();
   $('output').onclick = null;
@@ -445,13 +455,26 @@ function italicNodes(s) {
 }
 
 // ---------- settings ----------
+function showProviderFields() {
+  const p = $('provider').value;
+  for (const box of document.querySelectorAll('[data-provider]')) box.hidden = box.dataset.provider !== p;
+}
+
 function openSettings() {
   const o = settings.options;
+  $('provider').value = settings.provider;
+  showProviderFields();
   $('model').replaceChildren(...o.models.map((m) => el('option', { value: m.id, selected: m.id === settings.model }, m.label)));
+  $('nvidiaModels').replaceChildren(...o.nvidiaModels.map((m) => el('option', { value: m })));
+  $('nvidiaModel').value = settings.nvidiaModel;
+  $('nvidiaKey').value = '';
+  $('nvidiaKeyHint').textContent = settings.hasKey.nvidia
+    ? 'A key is saved. Leave blank to keep it.'
+    : 'Get a free key at build.nvidia.com (sign in, open any model, then "Get API Key"). It is stored encrypted on this computer.';
   $('citationStyle').replaceChildren(...o.citationStyles.map((s) => el('option', { value: s, selected: s === settings.citationStyle }, s)));
   $('englishVariant').value = settings.englishVariant;
   $('apiKey').value = '';
-  $('keyHint').textContent = settings.hasApiKey
+  $('keyHint').textContent = settings.hasKey.anthropic
     ? 'A key is saved. Leave blank to keep it.'
     : 'Get a key at console.anthropic.com. It is stored encrypted on this computer.';
   $('settingsDialog').showModal();
@@ -459,12 +482,16 @@ function openSettings() {
 
 async function saveSettingsFromDialog() {
   const patch = {
+    provider: $('provider').value,
     model: $('model').value,
+    nvidiaModel: $('nvidiaModel').value,
     englishVariant: $('englishVariant').value,
     citationStyle: $('citationStyle').value,
   };
   const key = $('apiKey').value.trim();
   if (key) patch.apiKey = key;
+  const nvKey = $('nvidiaKey').value.trim();
+  if (nvKey) patch.nvidiaKey = nvKey;
   const view = await api.setSettings(patch);
   settings = { ...settings, ...view };
   selectTool(current);
@@ -482,6 +509,7 @@ async function init() {
   $('runBtn').addEventListener('click', run);
   $('cancelBtn').addEventListener('click', () => activeRequest && api.cancel(activeRequest.id));
   $('settingsBtn').addEventListener('click', openSettings);
+  $('provider').addEventListener('change', showProviderFields);
   $('settingsDialog').addEventListener('close', () => {
     if ($('settingsDialog').returnValue === 'save') saveSettingsFromDialog();
   });

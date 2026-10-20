@@ -26,6 +26,7 @@ function friendlyError(err) {
   if (err instanceof Anthropic.APIUserAbortError) return 'Cancelled.';
   if (err instanceof Anthropic.APIConnectionError) return 'Could not reach the Claude API. Check your internet connection.';
   if (err instanceof Anthropic.APIError) return `Claude API error ${err.status ?? ''}: ${err.message}`;
+  if (err && err.name === 'AbortError') return 'Cancelled.';
   return err && err.message ? err.message : String(err);
 }
 

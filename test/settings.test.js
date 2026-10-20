@@ -19,10 +19,13 @@ function tmpDir() {
 test('stores a key per provider, encrypted, and never exposes it', () => {
   delete process.env.ANTHROPIC_API_KEY;
   delete process.env.NVIDIA_API_KEY;
+  delete process.env.TAVILY_API_KEY;
+  delete process.env.OPENALEX_API_KEY;
   const dir = tmpDir();
   const s = new SettingsStore(dir, fakeSafeStorage);
-  let view = s.update({ provider: 'nvidia', nvidiaKey: 'nvapi-123', nvidiaModel: 'moonshotai/kimi-k2.6' });
-  assert.deepStrictEqual(view.hasKey, { anthropic: false, nvidia: true });
+  let view = s.update({ provider: 'nvidia', nvidiaKey: 'nvapi-123', tavilyKey: 'tvly-9', nvidiaModel: 'moonshotai/kimi-k2.6' });
+  assert.deepStrictEqual(view.hasKey, { anthropic: false, nvidia: true, tavily: true, openalex: false });
+  assert.ok(!JSON.stringify(view).includes('tvly-9'));
   assert.strictEqual(view.hasApiKey, true);
   assert.ok(!JSON.stringify(view).includes('nvapi-123'));
   const file = fs.readFileSync(path.join(dir, 'settings.json'), 'utf8');

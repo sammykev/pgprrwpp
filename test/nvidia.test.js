@@ -54,10 +54,9 @@ test('proofread asks for JSON and tolerates code fences', async () => {
   assert.match(calls[0].body.messages[0].content, /JSON Schema/);
 });
 
-test('web-search tools are refused without calling the API', async () => {
+test('originality without a Tavily key asks for one before calling any API', async () => {
   const { fetchImpl, calls } = fakeFetch([]);
-  await assert.rejects(runNvidiaTask({ apiKey: 'k', task: 'originality', input: 'x', fetchImpl }), /web search/);
-  await assert.rejects(runNvidiaTask({ apiKey: 'k', task: 'compose', input: 'x', opts: { research: true }, fetchImpl }), /Untick/);
+  await assert.rejects(runNvidiaTask({ apiKey: 'k', task: 'originality', input: 'A sentence that is long enough to be checked online today.', fetchImpl }), /Tavily key/);
   assert.strictEqual(calls.length, 0);
 });
 

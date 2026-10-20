@@ -1,9 +1,10 @@
 'use strict';
 
 // NVIDIA API catalog (build.nvidia.com): free-tier hosted open models behind an
-// OpenAI-compatible chat completions endpoint. No web search, so tasks that
-// need live sources are unavailable on this provider.
+// OpenAI-compatible chat completions endpoint. It has no web search, so tasks
+// that need sources go through pipeline.js (Crossref/OpenAlex/Tavily).
 const { buildRequest, PROOFREAD_SCHEMA } = require('./prompts');
+const { runResearchTask } = require('./pipeline');
 
 const BASE_URL = 'https://integrate.api.nvidia.com/v1';
 const DEFAULT_NVIDIA_MODEL = 'mistralai/mistral-large-2-instruct';
@@ -52,16 +53,9 @@ function parseJsonObject(text) {
   }
 }
 
-async function runNvidiaTask({ apiKey, model, task, input, opts = {}, settings = {}, onDelta = () => {}, signal, fetchImpl = fetch }) {
-  if (!apiKey) throw new NvidiaError('Add your NVIDIA API key in Settings.');
-  const req = buildRequest(task, input, opts, settings);
-  if (req.webSearch) {
-    throw new NvidiaError(task === 'compose'
-      ? 'Researched drafts need web search, which only the Claude provider has. Untick "Research & cite sources" to draft with NVIDIA.'
-      : 'This tool needs web search, which only the Claude provider has. With NVIDIA you can still use the offline reference builder under Citations.');
-  }
-
-  const system = req.structured ? `${req.system}\n${PROOFREAD_JSON_RULES}` : req.system;
+// One streamed chat completion. Returns { text, finishReason } with any
+// <think> reasoning removed; onDelta receives only the visible text.
+async function nvidiaChat({ apiKey, model, system, user, temperature = 0.6, maxTokens = 8192, onDelta, signal, fetchImpl = fetch }) {
   let res;
   try {
     res = await fetchImpl(`${BASE_URL}/chat/completions`, {
@@ -70,9 +64,9 @@ async function runNvidiaTask({ apiKey, model, task, input, opts = {}, settings =
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', Accept: 'text/event-stream' },
       body: JSON.stringify({
         model: model || DEFAULT_NVIDIA_MODEL,
-        messages: [{ role: 'system', content: system }, { role: 'user', content: req.user }],
-        temperature: req.structured ? 0.1 : 0.6,
-        max_tokens: 8192,
+        messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+        temperature,
+        max_tokens: maxTokens,
         stream: true,
       }),
     });
@@ -103,7 +97,7 @@ async function runNvidiaTask({ apiKey, model, task, input, opts = {}, settings =
       const delta = choice.delta && choice.delta.content;
       if (!delta) continue;
       raw += delta;
-      if (!req.structured) {
+      if (onDelta) {
         // Forward only text outside <think> blocks, holding back a possible
         // half-received "<think>" tag at the end.
         const visible = holdPartialTag(stripThinking(raw));
@@ -114,16 +108,34 @@ async function runNvidiaTask({ apiKey, model, task, input, opts = {}, settings =
       }
     }
   }
+  return { text: stripThinking(raw), finishReason };
+}
 
-  const text = stripThinking(raw);
-  const data = req.structured ? parseJsonObject(text) : null;
+async function runNvidiaTask({ apiKey, model, task, input, opts = {}, settings = {}, searchKeys = {}, onDelta = () => {}, onStatus = () => {}, signal, fetchImpl = fetch }) {
+  if (!apiKey) throw new NvidiaError('Add your NVIDIA API key in Settings.');
+  const req = buildRequest(task, input, opts, settings);
+  const chat = (args) => nvidiaChat({ apiKey, model, signal, fetchImpl, ...args });
+
+  if (req.webSearch) {
+    // No built-in search: run the search-then-write pipeline instead.
+    const result = await runResearchTask({ task, input, opts, settings, chat, searchKeys, onDelta, onStatus, signal, fetchImpl });
+    return { ...result, model: model || DEFAULT_NVIDIA_MODEL };
+  }
+
+  const system = req.structured ? `${req.system}\n${PROOFREAD_JSON_RULES}` : req.system;
+  const { text, finishReason } = await chat({
+    system,
+    user: req.user,
+    temperature: req.structured ? 0.1 : 0.6,
+    onDelta: req.structured ? null : onDelta,
+  });
   return {
     text,
-    data,
+    data: req.structured ? parseJsonObject(text) : null,
     sources: [],
     stopReason: finishReason === 'length' ? 'max_tokens' : 'end_turn',
     model: model || DEFAULT_NVIDIA_MODEL,
   };
 }
 
-module.exports = { runNvidiaTask, NvidiaError, NVIDIA_MODELS, DEFAULT_NVIDIA_MODEL, stripThinking };
+module.exports = { runNvidiaTask, nvidiaChat, NvidiaError, NVIDIA_MODELS, DEFAULT_NVIDIA_MODEL, stripThinking, parseJsonObject };

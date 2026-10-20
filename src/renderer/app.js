@@ -253,8 +253,8 @@ function providerNotice(key, manual) {
   if (manual) return '';
   const nvidia = settings.provider === 'nvidia';
   if (!settings.hasApiKey) return `Add your ${nvidia ? 'NVIDIA' : 'Claude'} API key in Settings to start.`;
-  if (nvidia && (key === 'originality' || key === 'cite')) {
-    return 'This tool needs web search, which only the Claude provider has.' + (key === 'cite' ? ' The "Build a reference" mode works with any provider.' : '');
+  if (nvidia && key === 'originality' && !settings.hasKey.tavily) {
+    return 'The originality check searches the web. Add a free Tavily key in Settings (get one at tavily.com).';
   }
   return '';
 }
@@ -355,6 +355,12 @@ function appendSources(sources) {
   $('output').append(box);
   results[current].html = $('output').innerHTML;
 }
+
+api.onStatus(({ id, text }) => {
+  const r = activeRequest;
+  if (!r || r.id !== id || r.buffer || current !== r.task) return;
+  $('output').replaceChildren(el('p', { class: 'placeholder' }, el('span', { class: 'spinner' }), text));
+});
 
 api.onDelta(({ id, text }) => {
   const r = activeRequest;
@@ -468,6 +474,14 @@ function openSettings() {
   $('nvidiaModels').replaceChildren(...o.nvidiaModels.map((m) => el('option', { value: m })));
   $('nvidiaModel').value = settings.nvidiaModel;
   $('nvidiaKey').value = '';
+  $('tavilyKey').value = '';
+  $('tavilyKeyHint').textContent = settings.hasKey.tavily
+    ? 'A key is saved. Leave blank to keep it.'
+    : 'Needed for the originality check and web sources. Free key at tavily.com.';
+  $('openalexKey').value = '';
+  $('openalexKeyHint').textContent = settings.hasKey.openalex
+    ? 'A key is saved. Leave blank to keep it.'
+    : 'Citations already work without it (Crossref + OpenAlex free allowance). A free key from openalex.org gives you your own daily allowance.';
   $('nvidiaKeyHint').textContent = settings.hasKey.nvidia
     ? 'A key is saved. Leave blank to keep it.'
     : 'Get a free key at build.nvidia.com (sign in, open any model, then "Get API Key"). It is stored encrypted on this computer.';
@@ -490,8 +504,10 @@ async function saveSettingsFromDialog() {
   };
   const key = $('apiKey').value.trim();
   if (key) patch.apiKey = key;
-  const nvKey = $('nvidiaKey').value.trim();
-  if (nvKey) patch.nvidiaKey = nvKey;
+  for (const field of ['nvidiaKey', 'tavilyKey', 'openalexKey']) {
+    const v = $(field).value.trim();
+    if (v) patch[field] = v;
+  }
   const view = await api.setSettings(patch);
   settings = { ...settings, ...view };
   selectTool(current);

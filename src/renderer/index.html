@@ -63,7 +63,7 @@
       <label>AI provider
         <select id="provider">
           <option value="anthropic">Claude (Anthropic): best quality, all tools</option>
-          <option value="nvidia">NVIDIA API catalog: free tier, no web search</option>
+          <option value="nvidia">NVIDIA API catalog: free tier</option>
         </select>
       </label>
       <div data-provider="anthropic">
@@ -83,6 +83,17 @@
           <datalist id="nvidiaModels"></datalist>
           <small class="muted">Any chat model ID from build.nvidia.com works.</small>
         </label>
+        <fieldset>
+          <legend>Search keys (free)</legend>
+          <label>Tavily web search key
+            <input type="password" id="tavilyKey" autocomplete="off" placeholder="tvly-…">
+            <small id="tavilyKeyHint" class="muted"></small>
+          </label>
+          <label>OpenAlex key (optional)
+            <input type="password" id="openalexKey" autocomplete="off">
+            <small id="openalexKeyHint" class="muted"></small>
+          </label>
+        </fieldset>
       </div>
       <label>English <select id="englishVariant"><option value="US">American</option><option value="UK">British</option></select></label>
       <label>Default citation style <select id="citationStyle"></select></label>

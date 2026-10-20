@@ -4,7 +4,9 @@ const fs = require('fs');
 const path = require('path');
 
 const PROVIDERS = ['anthropic', 'nvidia'];
-const KEY_ENV = { anthropic: 'ANTHROPIC_API_KEY', nvidia: 'NVIDIA_API_KEY' };
+// Every key the app can hold: the two AI providers plus the search services.
+const KEY_ENV = { anthropic: 'ANTHROPIC_API_KEY', nvidia: 'NVIDIA_API_KEY', tavily: 'TAVILY_API_KEY', openalex: 'OPENALEX_API_KEY' };
+const KEY_FIELDS = { apiKey: 'anthropic', nvidiaKey: 'nvidia', tavilyKey: 'tavily', openalexKey: 'openalex' };
 
 // Settings live in a JSON file in the user's app-data folder. API keys are
 // encrypted with the OS keychain (DPAPI on Windows) when available.
@@ -70,13 +72,14 @@ class SettingsStore {
   // What the renderer may see: never the keys themselves.
   publicView() {
     const { keys, ...rest } = this.data;
-    const hasKey = Object.fromEntries(PROVIDERS.map((p) => [p, !!this.getApiKey(p)]));
+    const hasKey = Object.fromEntries(Object.keys(KEY_ENV).map((k) => [k, !!this.getApiKey(k)]));
     return { ...rest, hasKey, hasApiKey: hasKey[this.data.provider] };
   }
 
   update(patch) {
-    if (typeof patch.apiKey === 'string' && patch.apiKey.trim()) this.setApiKey('anthropic', patch.apiKey);
-    if (typeof patch.nvidiaKey === 'string' && patch.nvidiaKey.trim()) this.setApiKey('nvidia', patch.nvidiaKey);
+    for (const [field, name] of Object.entries(KEY_FIELDS)) {
+      if (typeof patch[field] === 'string' && patch[field].trim()) this.setApiKey(name, patch[field]);
+    }
     if (PROVIDERS.includes(patch.provider)) this.data.provider = patch.provider;
     for (const k of ['model', 'nvidiaModel', 'englishVariant', 'citationStyle']) {
       if (typeof patch[k] === 'string' && patch[k].trim()) this.data[k] = patch[k].trim();

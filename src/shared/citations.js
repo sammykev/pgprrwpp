@@ -104,7 +104,7 @@
           if (vol) tail.push(`vol. ${vol}`);
           if (iss) tail.push(`no. ${iss}`);
           tail.push(year);
-          if (pages) tail.push(`pp. ${pages}`);
+          if (pages) tail.push(`${pages.includes('–') ? 'pp.' : 'p.'} ${pages}`);
         } else {
           if (cont) tail.push(`*${cont}*`);
           if (pub) tail.push(pub);
@@ -163,13 +163,18 @@
   function inText(style, src, index = 1) {
     const names = (src.authors || []).map(parseName).map((a) => a.last);
     const year = src.year || 'n.d.';
-    const who = names.length === 0 ? `“${src.title || ''}”`
+    // No author: styles use a shortened title instead.
+    const titleWords = (src.title || '').split(/\s+/).slice(0, 4);
+    while (titleWords.length > 1 && /^(a|an|the|of|in|on|for|to|from|and|with|by)$/i.test(titleWords[titleWords.length - 1])) titleWords.pop();
+    const shortTitle = titleWords.join(' ').replace(/[.,:;|–-]+$/, '');
+    const who = names.length === 0 ? `“${shortTitle}”`
       : names.length === 1 ? names[0]
         : names.length === 2 ? `${names[0]} ${style === 'APA 7' ? '&' : 'and'} ${names[1]}`
           : `${names[0]} et al.`;
     switch (style) {
       case 'APA 7': return `(${who}, ${year})`;
-      case 'MLA 9': return `(${who}${src.pages ? ` ${String(src.pages).split('-')[0]}` : ''})`;
+      // The page range describes the whole article, not the cited passage, so it is not used here.
+      case 'MLA 9': return `(${who})`;
       case 'Chicago (author-date)':
       case 'Harvard': return `(${who} ${year})`;
       case 'IEEE': return `[${index}]`;

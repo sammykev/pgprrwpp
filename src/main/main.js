@@ -55,9 +55,15 @@ ipcMain.handle('ai:run', async (event, { id, task, input, opts }) => {
       settings: settings.data,
       signal: controller.signal,
       onDelta: (text) => event.sender.send('ai:delta', { id, text }),
+      onStatus: (text) => event.sender.send('ai:status', { id, text }),
     };
     const result = settings.data.provider === 'nvidia'
-      ? await runNvidiaTask({ ...common, apiKey: settings.getApiKey('nvidia'), model: settings.data.nvidiaModel })
+      ? await runNvidiaTask({
+        ...common,
+        apiKey: settings.getApiKey('nvidia'),
+        model: settings.data.nvidiaModel,
+        searchKeys: { tavily: settings.getApiKey('tavily'), openalex: settings.getApiKey('openalex') },
+      })
       : await runTask({ ...common, client: createClient(settings.getApiKey('anthropic')) });
     return { ok: true, ...result };
   } catch (err) {

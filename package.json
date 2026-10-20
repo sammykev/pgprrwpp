@@ -1,0 +1,38 @@
+{
+  "name": "quillwise",
+  "productName": "Quillwise",
+  "version": "0.1.0",
+  "description": "AI writing assistant for Windows: proofread, paraphrase, rewrite, originality check, draft composer, citations and natural-voice editing.",
+  "main": "src/main/main.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "dist:win": "electron-builder --win nsis portable"
+  },
+  "build": {
+    "appId": "com.quillwise.app",
+    "productName": "Quillwise",
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0"
+  },
+  "devDependencies": {
+    "electron": "^44.9.1",
+    "electron-builder": "^26.15.3"
+  }
+}

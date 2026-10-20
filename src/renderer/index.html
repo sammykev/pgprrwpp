@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:">
+  <title>Quillwise</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><span class="logo">Q</span> Quillwise</div>
+    <nav id="tools" aria-label="Tools"></nav>
+    <button id="settingsBtn" class="nav-item settings-link" type="button">Settings</button>
+  </aside>
+
+  <main>
+    <header class="tool-header">
+      <div>
+        <h1 id="toolTitle"></h1>
+        <p id="toolDesc" class="muted"></p>
+      </div>
+      <div class="actions">
+        <button id="cancelBtn" class="btn ghost" type="button" hidden>Cancel</button>
+        <button id="runBtn" class="btn primary" type="button"></button>
+      </div>
+    </header>
+
+    <section id="options" class="options" aria-label="Options"></section>
+
+    <div id="banner" class="banner" hidden></div>
+
+    <div class="panes">
+      <section class="pane">
+        <div class="pane-bar">
+          <span id="inputLabel" class="pane-title">Your text</span>
+          <div class="bar-actions">
+            <button class="btn small ghost" id="openBtn" type="button">Open…</button>
+            <button class="btn small ghost" id="clearBtn" type="button">Clear</button>
+          </div>
+        </div>
+        <textarea id="input" spellcheck="true" placeholder="Type or paste your writing here…"></textarea>
+        <footer id="inputStats" class="stats"></footer>
+      </section>
+
+      <section class="pane">
+        <div class="pane-bar">
+          <span class="pane-title">Result</span>
+          <div class="bar-actions">
+            <button class="btn small ghost" id="copyBtn" type="button">Copy</button>
+            <button class="btn small ghost" id="useBtn" type="button">Use as my text</button>
+            <button class="btn small ghost" id="saveBtn" type="button">Save…</button>
+          </div>
+        </div>
+        <div id="output" class="output" tabindex="0" aria-live="polite"></div>
+        <footer id="outputStats" class="stats"></footer>
+      </section>
+    </div>
+  </main>
+
+  <dialog id="settingsDialog">
+    <form method="dialog" id="settingsForm">
+      <h2>Settings</h2>
+      <label>Claude API key
+        <input type="password" id="apiKey" autocomplete="off" placeholder="sk-ant-…">
+        <small id="keyHint" class="muted"></small>
+      </label>
+      <label>Model <select id="model"></select></label>
+      <label>English <select id="englishVariant"><option value="US">American</option><option value="UK">British</option></select></label>
+      <label>Default citation style <select id="citationStyle"></select></label>
+      <div class="dialog-actions">
+        <button class="btn ghost" value="cancel" type="submit" formnovalidate>Close</button>
+        <button class="btn primary" value="save" type="submit" id="saveSettings">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="../shared/textstats.js"></script>
+  <script src="../shared/markdown.js"></script>
+  <script src="../shared/citations.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
